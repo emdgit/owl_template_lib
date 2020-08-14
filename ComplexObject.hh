@@ -2,7 +2,6 @@
 
 #include <type_traits>
 #include <new>
-//#include <iostream>
 
 template <class ...Args>
 static constexpr size_t args_size_v = (sizeof(Args) + ...);
@@ -35,8 +34,11 @@ public:
 		(fill(std::forward<Args>(args)), ...);
 	}
 
-	auto get(size_t n) {
-
+	template <size_t n>
+	auto& get() {
+		constexpr auto offset = byte_offset<n, Args...>();
+		using type = typename std::tuple_element<n, std::tuple<Args...>>::type;
+		return *reinterpret_cast<type*>(&data_[offset]);
 	}
 
 private:
