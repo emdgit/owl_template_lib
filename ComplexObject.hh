@@ -3,9 +3,11 @@
 #include <type_traits>
 #include <new>
 
+/// Calculate how much bytes pack weighs
 template <class ...Args>
 static constexpr size_t args_size_v = (sizeof(Args) + ...);
 
+/// Get how much bytes stand before n's type in pack
 template <size_t n, class T, class ... Args>
 static constexpr size_t byte_offset() noexcept
 {
@@ -18,6 +20,7 @@ static constexpr size_t byte_offset() noexcept
 	}
 }
 
+/// Composite object, made of given data
 template <class ... Args>
 class ComplexObject {
 public:
@@ -41,7 +44,10 @@ public:
 		return *reinterpret_cast<type*>(&data_[offset]);
 	}
 
+	inline constexpr size_t size() const noexcept {
+		return sizeof...(Args);
+	}
+
 private:
 	char data_[args_size_v<Args...>];
-	
 };
