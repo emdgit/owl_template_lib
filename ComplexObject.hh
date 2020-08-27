@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <utility>
 #include <new>
 
 /// Calculate how much bytes pack weighs
@@ -36,6 +37,13 @@ public:
 
 		(fill(std::forward<Args>(args)), ...);
 	}
+	ComplexObject(const ComplexObject<Args...> &other) {
+		memcpy(&data_[0], &other.data_[0], size());
+	}
+	ComplexObject(ComplexObject<Args...> &&other) {
+		memcpy(&data_[0], &other.data_[0], size());
+		memset(&other.data_[0], 0, size());
+	}
 
 	template <size_t n>
 	auto& get() {
@@ -44,8 +52,31 @@ public:
 		return *reinterpret_cast<type*>(&data_[offset]);
 	}
 
-	inline constexpr size_t size() const noexcept {
+	template <size_t n>
+	const auto& get() const {
+		constexpr auto offset = byte_offset<n, Args...>();
+		using type = typename std::tuple_element<n, std::tuple<Args...>>::type;
+		return *reinterpret_cast<const type*>(&data_[offset]);
+	}
+
+	static inline constexpr size_t size() noexcept {
 		return sizeof...(Args);
+	}
+
+	template <class T>
+	T to_user_type() const {
+		static_assert(std::is_constructible_v<T,Args...>, 
+			"Cannot construct to user type");
+		constexpr auto seq = std::make_integer_sequence<size_t, size()>();
+
+		return user_ctor<T>(seq);
+	}
+
+protected:
+
+	template <class U, size_t ... vs>
+	U user_ctor(std::integer_sequence<size_t, vs...> seq) const {
+		return { get<vs>()... };
 	}
 
 private:
